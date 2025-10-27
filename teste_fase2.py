@@ -32,106 +32,177 @@ classes = [tipos for tipos in os.listdir(base_dir) if os.path.isdir(os.path.join
 # cria uma pasta chamada classes, que tem somente dentro dela as pastas que tem sob a pasta principal.
 
 
-# -------------------------------
-# 1. Verificação de integridade
-# -------------------------------
-corrompidos = []
+def obter_corrompidos(base_dir: str, classes: list[str]) -> list[str]:
+  """
+  Verifica imagens corrompidas.
 
-for classe in classes: #percorre cada pasta de classe dentro do dataset 
-    caminho_classe = os.path.join(base_dir, classe) #monta o caminho que vai ser encontrado da classe
-    for arquivo in os.listdir(caminho_classe):  #entra na classe e lista tudo o que tem dentro dela, arquivo por arquivo 
-        caminho_arquivo = os.path.join(caminho_classe, arquivo) #junta o caminho e o nome do arquivo pra abrir a imagem
-        try:
-            with Image.open(caminho_arquivo) as img: #tenta abrir o arquivo como uma imagem pelo pillow e que vai ser automaticamente fechado depois
-                img.verify() #verifica se a imagem não está corrompida
-        except: #se for ocorrer erro, o código entra nesse bloco
-            corrompidos.append(caminho_arquivo) #o joga para a lista de corrompidos, para uma pasta.
+  O script percorre cada pasta da classe, lista seus arquivos de imagem e
+  tenta abrir cada imagem individualmente. Se não for possível abrir a 
+  imagem, ela será considerada corrompida, e será retornada.
 
+  Parameters
+  ----------
+  base_dir : str
+    Caminho para o diretório base.
+
+  classes : list[str]
+    Lista de classes possíveis.
+
+  Returns
+  -------
+  list[str]
+    Lista de caminhos para arquivos corrompidos. Caso nenhuma imagem esteja corrompida, será
+    retornada uma lista vazia.
+  """
+  corrompidos = []
+
+  for classe in classes:
+      caminho_classe = os.path.join(base_dir, classe)
+      for arquivo in os.listdir(caminho_classe):
+          caminho_arquivo = os.path.join(caminho_classe, arquivo)
+          try:
+              with Image.open(caminho_arquivo) as img:
+                  img.verify()
+          except:
+              corrompidos.append(caminho_arquivo)
+  return corrompidos
 # -------------------------------
 # 2. Verificação de baixa resolução (<64x64)
 # -------------------------------
-baixa_res = []
 
-for classe in classes:
-    caminho_classe = os.path.join(base_dir, classe)
-    for arquivo in os.listdir(caminho_classe):
-        caminho_arquivo = os.path.join(caminho_classe, arquivo)
-        if caminho_arquivo in corrompidos:
-            continue #se estiver em corrompidos ele já pula 
-        try:
-            with Image.open(caminho_arquivo) as img: #usa pillow pra abrir a imagem que está na local caminho arquivo #with abre temporariamente e fecha automaticamente
-                if img.width < 64 or img.height < 64: #verifica o tamanho da imagem (resolução) 
-                    baixa_res.append(caminho_arquivo) #se for baixa resolução, adiciona seu caminho a lista de baixa resolução 
-        except:
-            continue
+import os
+from PIL import Image
 
-# -------------------------------
-# 3. Detectar duplicatas exatas
-# -------------------------------
-hashes = {}
-duplicadas = []
+def obter_baixa_resolucao(base_dir: str, classes: list[str], corrompidos: list[str]) -> list[str]:
+    """
+    Verifica imagens com baixa resolução.
+    """
+    baixa_res = []
 
-for classe in classes:
-    caminho_classe = os.path.join(base_dir, classe)
-    for arquivo in os.listdir(caminho_classe):
-        caminho_arquivo = os.path.join(caminho_classe, arquivo)
-        if caminho_arquivo in corrompidos or caminho_arquivo in baixa_res:
-            continue #ser for corrompido ou baixa resolução ele não vai entrar na busca já, diretamente
-        try: #tenta executar o codigo de leitura e o hash do arquivo 
-            with open(caminho_arquivo, 'rb') as f: #abre e le o arquivo como binário
-                h = hashlib.sha256(f.read()).hexdigest() #cria um hash do arquivo, calcula o hash SHA-256, uma “impressão digital” única para aquele conteúdo, e transforma em um hexadecimal legível 
-            if h in hashes: #verifica se o código já foi visto antes 
-                duplicadas.append(caminho_arquivo) #se já existe, é uma imagem duplicada da outra e vai ser adicionado ou excluido depois.
-            else:
-                hashes[h] = caminho_arquivo #se não foi visto é adicionado ao dicionario como novo item. guarda o hash e o caminho.
-        except: #se der errado entra aqui e passa pra próxima iteração do loop. 
-            continue
-# 4. Padronizar imagens válidas e salvar
+    for classe in classes:
+        caminho_classe = os.path.join(base_dir, classe)
+        for arquivo in os.listdir(caminho_classe):
+            caminho_arquivo = os.path.join(caminho_classe, arquivo)
+            if caminho_arquivo in corrompidos:
+                continue  # se estiver em corrompidos ele já pula 
+            try:
+                with Image.open(caminho_arquivo) as img:
+                    if img.width < 64 or img.height < 64:
+                        baixa_res.append(caminho_arquivo)
+            except:
+                continue
 
-validas = []
+    return baixa_res
 
-for classe in classes:
-    caminho_classe = os.path.join(base_dir, classe)
-    nova_classe_dir = os.path.join(saida_dir, classe)
-    os.makedirs(nova_classe_dir, exist_ok=True)
+
+def detectar_duplicatas(base_dir: str, classes: list[str], corrompidos: list[str], baixa_res: list[str]) -> list[str]:
+    """
+    Detecta imagens duplicadas exatas dentro das classes, ignorando arquivos corrompidos ou de baixa resolução.
     
-    for arquivo in os.listdir(caminho_classe):
-        caminho_arquivo = os.path.join(caminho_classe, arquivo)
-        if caminho_arquivo in corrompidos or caminho_arquivo in baixa_res or caminho_arquivo in duplicadas:
-            continue
-        try:
-            with Image.open(caminho_arquivo) as img:
-                img = img.convert('RGB')
-                img = img.resize(nova_resolucao, Image.Resampling.LANCZOS)
-                novo_nome = os.path.join(nova_classe_dir, os.path.splitext(arquivo)[0] + '.jpg')
-                img.save(novo_nome, novo_formato, quality=qualidade)
-                validas.append(novo_nome)
-        except Exception as e:
-            print(f"Erro em {caminho_arquivo}: {e}")
-
-print(f"Total de imagens válidas e padronizadas: {len(validas)}")
-
-# 5. Plotar imagens válidas por classe (lotes de 5)
-
-for classe in classes:
-    imagens_classe = [img for img in validas if f'/{classe}/' in img]
-    if not imagens_classe:
-        continue
+    Parameters
+    ----------
+    base_dir : str
+        Caminho para o diretório base.
+    classes : list[str]
+        Lista de classes possíveis.
+    corrompidos : list[str]
+        Lista de caminhos de arquivos corrompidos.
+    baixa_res : list[str]
+        Lista de caminhos de arquivos de baixa resolução.
     
-    for i in range(0, len(imagens_classe), lote_plot):
-        lote = imagens_classe[i:i+lote_plot]
-        plt.figure(figsize=(15, 5*len(lote)))  # altura proporcional ao lote
-        colunas = 1
-        linhas = len(lote)
-        plt.suptitle(f"Imagens válidas da classe {classe}", fontsize=16)
-        
-        for j, img_path in enumerate(lote):
-            img = Image.open(img_path)
-            plt.subplot(linhas, colunas, j+1)
-            plt.imshow(img)
-            plt.axis('off')
-            plt.title(os.path.basename(img_path), fontsize=12)
-        
-        plt.tight_layout(pad=3.0)
-        plt.show()
+    Returns
+    -------
+    list[str]
+        Lista de caminhos de arquivos duplicados.
+    """
+    hashes = {}       # Dicionário para guardar hash de cada arquivo
+    duplicadas = []   # Lista de arquivos duplicados encontrados
+
+    for classe in classes:
+        caminho_classe = os.path.join(base_dir, classe)
+        for arquivo in os.listdir(caminho_classe):
+            caminho_arquivo = os.path.join(caminho_classe, arquivo)
+
+            # Ignora arquivos corrompidos ou de baixa resolução
+            if caminho_arquivo in corrompidos or caminho_arquivo in baixa_res:
+                continue
+
+            try:
+                # Abre o arquivo em modo binário e calcula o hash SHA-256
+                with open(caminho_arquivo, 'rb') as f:
+                    h = hashlib.sha256(f.read()).hexdigest()
+                
+                # Verifica se o hash já foi visto
+                if h in hashes:
+                    duplicadas.append(caminho_arquivo)  # Arquivo duplicado
+                else:
+                    hashes[h] = caminho_arquivo  # Guarda o hash como visto
+            except:
+                continue  # Se der erro, apenas ignora e segue
+
+    return duplicadas
+
+def padronizar_imagens(base_dir: str, classes: list[str], saida_dir: str,
+                       corrompidos: list[str], baixa_res: list[str], duplicadas: list[str],
+                       nova_resolucao: tuple[int, int], novo_formato: str = 'JPEG', qualidade: int = 95) -> list[str]:
+    """
+    Converte e redimensiona imagens válidas, salvando-as em novo diretório.
+
+    Parameters
+    ----------
+    base_dir : str
+        Diretório base com as classes originais.
+    classes : list[str]
+        Lista de classes a serem processadas.
+    saida_dir : str
+        Diretório de saída onde as imagens padronizadas serão salvas.
+    corrompidos : list[str]
+        Lista de arquivos corrompidos.
+    baixa_res : list[str]
+        Lista de arquivos de baixa resolução.
+    duplicadas : list[str]
+        Lista de arquivos duplicados.
+    nova_resolucao : tuple[int, int]
+        Nova resolução (largura, altura) para as imagens.
+    novo_formato : str, opcional
+        Formato de saída das imagens (padrão 'JPEG').
+    qualidade : int, opcional
+        Qualidade da imagem salva (padrão 95).
+
+    Returns
+    -------
+    list[str]
+        Lista de caminhos das imagens válidas processadas.
+    """
+    validas = []
+
+    for classe in classes:
+        caminho_classe = os.path.join(base_dir, classe)
+        nova_classe_dir = os.path.join(saida_dir, classe)
+        os.makedirs(nova_classe_dir, exist_ok=True)  # Cria diretório se não existir
+
+        for arquivo in os.listdir(caminho_classe):
+            caminho_arquivo = os.path.join(caminho_classe, arquivo)
+
+            # Ignora arquivos corrompidos, de baixa resolução ou duplicados
+            if caminho_arquivo in corrompidos or caminho_arquivo in baixa_res or caminho_arquivo in duplicadas:
+                continue
+
+            try:
+                # Abre a imagem, converte para RGB e redimensiona
+                with Image.open(caminho_arquivo) as img:
+                    img = img.convert('RGB')
+                    img = img.resize(nova_resolucao, Image.Resampling.LANCZOS)
+
+                    # Salva no novo diretório com o novo formato
+                    novo_nome = os.path.join(nova_classe_dir, os.path.splitext(arquivo)[0] + '.jpg')
+                    img.save(novo_nome, novo_formato, quality=qualidade)
+
+                    validas.append(novo_nome)  # Adiciona à lista de válidas
+
+            except Exception as e:
+                print(f"Erro em {caminho_arquivo}: {e}")
+
+    print(f"Total de imagens válidas e padronizadas: {len(validas)}")
+    return validas
 
