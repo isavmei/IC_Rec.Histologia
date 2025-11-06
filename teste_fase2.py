@@ -206,3 +206,312 @@ def padronizar_imagens(base_dir: str, classes: list[str], saida_dir: str,
     print(f"Total de imagens válidas e padronizadas: {len(validas)}")
     return validas
 
+def normalizacao(validas, saida_dir='/content/imagens_normalizadas'):
+    """
+    Aplica normalização de intensidade (0 a 1) nas imagens válidas e salva as novas versões.
+
+    Parameters
+    ----------
+    validas : list[str]
+        Lista de caminhos das imagens válidas.
+    saida_dir : str
+        Diretório de saída para salvar as imagens normalizadas.
+    """
+
+    os.makedirs(saida_dir, exist_ok=True)
+    normalizadas = []
+
+    for caminho in validas:
+        try:
+            # Lê a imagem
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+
+            # Aplica normalização de intensidade (para [0,1])
+            img_norm = cv2.normalize(img, None, alpha=0, beta=1,
+                                     norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+            # Converte de volta para 8 bits (0–255) para salvar
+            img_saida = (img_norm * 255).astype('uint8')
+
+            # Monta caminho de saída
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_saida)
+            normalizadas.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(normalizadas)}")
+    return normalizadas
+
+def remocao_ruido(normalizadas, saida_dir='/content/remocao_ruido'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    remocao_ruido = []
+
+    for caminho in normalizadas:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            img_suavizada = cv2.GaussianBlur(img, (5,5), 0)
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_suavizada)
+            remocao_ruido.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(remocao_ruido)}")
+    return remocao_ruido 
+
+
+
+def correcao_rgb(remocao_ruido, saida_dir='/content/correcao_cor'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    correcao_rgb = []
+
+    for caminho in remocao_ruido:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
+            correcao_rgb.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(correcao_rgb)}")
+    return correcao_rgb
+
+def correcao_cinza(correcao_rgb, saida_dir='/content/correcao_cinza'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    correcao_cinza = []
+
+    for caminho in correcao_rgb:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            img_cinza = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_cinza)
+            correcao_cinza.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(correcao_cinza)}")
+    return correcao_cinza
+
+def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    desfoque = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            img_desfocada = cv2.blur(img,(5,5))
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_desfocada)
+            desfoque.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(desfoque)}")
+    return desfoque
+
+def rotacao(correcao_cinza, saida_dir='/content/rotacao'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    rotacao = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+
+            width, height  = img.shape[:2]
+            matriz_rotacao = cv2.getRotationMatrix2D((width/2, height/2), 45, 1.0)
+            img_rotacionada = cv2.warpAffine(img, matriz_rotacao, (width, height))
+            
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            cv2.imwrite(novo_caminho, img_rotacionada)
+            rotacao.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(rotacao)}")
+    return rotacao
+
+def aumento_brilho(correcao_cinza, saida_dir='/content/aumento_brilho'):
+    os.makedirs(saida_dir, exist_ok=True)
+    aumento_brilho = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            cod_brilho = np.ones(img.shape, dtype="uint8") * 70
+            img_brilho = cv2.add(img, cod_brilho)
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_brilho)
+            aumento_brilho.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(aumento_brilho)}")
+    return aumento_brilho
+
+def diminuicao_brilho(correcao_cinza, saida_dir='/content/diminuicao_brilho'):
+    os.makedirs(saida_dir, exist_ok=True)
+    diminuicao_brilho = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            cod_brilho = np.ones(img.shape, dtype="uint8") * 70
+            img_brilho_min = cv2.subtract(img, cod_brilho)
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_brilho_min)
+            diminuicao_brilho.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(diminuicao_brilho)}")
+    return diminuicao_brilho
+
+def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    desfoque = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            img_desfocada = cv2.blur(img,(5,5))
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            # Salva imagem normalizada
+            cv2.imwrite(novo_caminho, img_desfocada)
+            desfoque.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(desfoque)}")
+    return desfoque
+
+def inverter(correcao_cinza, saida_dir='/content/inverter'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    inverter = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+
+            img_invertida = cv2.flip(img, -1) #(inverte nos dois eixos)
+            
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            cv2.imwrite(novo_caminho, img_invertida)
+            inverter.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(inverter)}")
+    return inverter
+
+def nitidez(correcao_cinza, saida_dir='/content/nitidez'):
+
+    os.makedirs(saida_dir, exist_ok=True)
+    nitidez = []
+
+    for caminho in correcao_cinza:
+        try:
+            img = cv2.imread(caminho)
+            if img is None:
+                continue
+            
+            aumentando_nitidez = np.array([[-1,-1,-1],
+                                           [-1, 10, -1]
+                                           [-1,-1,-1]], dtype=np.float32)
+            img_nitida = cv2.filter2D(img, -1, aumentando_nitidez) #(inverte nos dois eixos)
+            
+
+            nome_arquivo = os.path.basename(caminho)
+            novo_caminho = os.path.join(saida_dir, nome_arquivo)
+
+            cv2.imwrite(novo_caminho, img_nitida)
+            nitidez.append(novo_caminho)
+
+        except Exception as e:
+            print(f"erro no {caminho}: {e}")
+
+    print(f" total: {len(nitidez)}")
+    return nitidez
