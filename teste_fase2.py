@@ -499,7 +499,7 @@ def nitidez(correcao_cinza, saida_dir='/content/nitidez'):
                 continue
             
             aumentando_nitidez = np.array([[-1,-1,-1],
-                                           [-1, 10, -1]
+                                           [-1, 10, -1],
                                            [-1,-1,-1]], dtype=np.float32)
             img_nitida = cv2.filter2D(img, -1, aumentando_nitidez) #(inverte nos dois eixos)
             
