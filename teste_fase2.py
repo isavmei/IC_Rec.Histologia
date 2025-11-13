@@ -249,8 +249,21 @@ def normalizacao(validas, saida_dir='/content/imagens_normalizadas'):
     print(f" total: {len(normalizadas)}")
     return normalizadas
 
-def remocao_ruido(normalizadas, saida_dir='/content/remocao_ruido'):
+import cv2
+import os
+import numpy as np
 
+def remocao_ruido(normalizadas, saida_dir='/content/remocao_ruido'):
+    '''
+    Aplica um filtro Gaussiano para suavizar e reduzir o ruído das imagens.
+
+    Parâmetros:
+        normalizadas (list): Lista de caminhos das imagens de entrada.
+        saida_dir (str): Diretório onde as imagens processadas serão salvas.
+
+    Retorna:
+        list: Lista com os caminhos das imagens suavizadas.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     remocao_ruido = []
 
@@ -265,7 +278,6 @@ def remocao_ruido(normalizadas, saida_dir='/content/remocao_ruido'):
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, img_suavizada)
             remocao_ruido.append(novo_caminho)
 
@@ -276,9 +288,17 @@ def remocao_ruido(normalizadas, saida_dir='/content/remocao_ruido'):
     return remocao_ruido 
 
 
-
 def correcao_rgb(remocao_ruido, saida_dir='/content/correcao_cor'):
+    '''
+    Converte as imagens do formato BGR (padrão do OpenCV) para RGB.
 
+    Parâmetros:
+        remocao_ruido (list): Lista de caminhos das imagens filtradas.
+        saida_dir (str): Diretório para salvar as imagens com correção de cor.
+
+    Retorna:
+        list: Lista com os caminhos das imagens em RGB.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     correcao_rgb = []
 
@@ -293,7 +313,6 @@ def correcao_rgb(remocao_ruido, saida_dir='/content/correcao_cor'):
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
             correcao_rgb.append(novo_caminho)
 
@@ -303,8 +322,18 @@ def correcao_rgb(remocao_ruido, saida_dir='/content/correcao_cor'):
     print(f" total: {len(correcao_rgb)}")
     return correcao_rgb
 
-def correcao_cinza(correcao_rgb, saida_dir='/content/correcao_cinza'):
 
+def correcao_cinza(correcao_rgb, saida_dir='/content/correcao_cinza'):
+    '''
+    Converte as imagens para escala de cinza.
+
+    Parâmetros:
+        correcao_rgb (list): Lista de caminhos das imagens RGB.
+        saida_dir (str): Diretório de saída das imagens em tons de cinza.
+
+    Retorna:
+        list: Lista com os caminhos das imagens convertidas para cinza.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     correcao_cinza = []
 
@@ -319,7 +348,6 @@ def correcao_cinza(correcao_rgb, saida_dir='/content/correcao_cinza'):
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, img_cinza)
             correcao_cinza.append(novo_caminho)
 
@@ -329,8 +357,18 @@ def correcao_cinza(correcao_rgb, saida_dir='/content/correcao_cinza'):
     print(f" total: {len(correcao_cinza)}")
     return correcao_cinza
 
-def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
 
+def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
+    '''
+    Aplica um desfoque simples (média) nas imagens para suavizar detalhes.
+
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório para salvar as imagens desfocadas.
+
+    Retorna:
+        list: Lista com os caminhos das imagens desfocadas.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     desfoque = []
 
@@ -340,12 +378,11 @@ def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
             if img is None:
                 continue
             
-            img_desfocada = cv2.blur(img,(5,5))
+            img_desfocada = cv2.blur(img, (5,5))
 
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, img_desfocada)
             desfoque.append(novo_caminho)
 
@@ -355,8 +392,18 @@ def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
     print(f" total: {len(desfoque)}")
     return desfoque
 
-def rotacao(correcao_cinza, saida_dir='/content/rotacao'):
 
+def rotacao(correcao_cinza, saida_dir='/content/rotacao'):
+    '''
+    Rotaciona as imagens em 45 graus no sentido horário.
+
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório onde as imagens rotacionadas serão salvas.
+
+    Retorna:
+        list: Lista com os caminhos das imagens rotacionadas.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     rotacao = []
 
@@ -366,11 +413,10 @@ def rotacao(correcao_cinza, saida_dir='/content/rotacao'):
             if img is None:
                 continue
 
-            width, height  = img.shape[:2]
+            width, height = img.shape[:2]
             matriz_rotacao = cv2.getRotationMatrix2D((width/2, height/2), 45, 1.0)
             img_rotacionada = cv2.warpAffine(img, matriz_rotacao, (width, height))
             
-
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
@@ -383,7 +429,18 @@ def rotacao(correcao_cinza, saida_dir='/content/rotacao'):
     print(f" total: {len(rotacao)}")
     return rotacao
 
+
 def aumento_brilho(correcao_cinza, saida_dir='/content/aumento_brilho'):
+    '''
+    Aumenta o brilho das imagens adicionando um valor constante aos pixels.
+
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório de saída para as imagens com brilho aumentado.
+
+    Retorna:
+        list: Lista com os caminhos das imagens com brilho aumentado.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     aumento_brilho = []
 
@@ -399,7 +456,6 @@ def aumento_brilho(correcao_cinza, saida_dir='/content/aumento_brilho'):
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, img_brilho)
             aumento_brilho.append(novo_caminho)
 
@@ -409,7 +465,18 @@ def aumento_brilho(correcao_cinza, saida_dir='/content/aumento_brilho'):
     print(f" total: {len(aumento_brilho)}")
     return aumento_brilho
 
+
 def diminuicao_brilho(correcao_cinza, saida_dir='/content/diminuicao_brilho'):
+    '''
+    Diminui o brilho das imagens subtraindo um valor constante dos pixels.
+
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório de saída para as imagens com brilho reduzido.
+
+    Retorna:
+        list: Lista com os caminhos das imagens com brilho reduzido.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     diminuicao_brilho = []
 
@@ -425,7 +492,6 @@ def diminuicao_brilho(correcao_cinza, saida_dir='/content/diminuicao_brilho'):
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
-            # Salva imagem normalizada
             cv2.imwrite(novo_caminho, img_brilho_min)
             diminuicao_brilho.append(novo_caminho)
 
@@ -435,34 +501,18 @@ def diminuicao_brilho(correcao_cinza, saida_dir='/content/diminuicao_brilho'):
     print(f" total: {len(diminuicao_brilho)}")
     return diminuicao_brilho
 
-def desfoque(correcao_cinza, saida_dir='/content/desfoque'):
-
-    os.makedirs(saida_dir, exist_ok=True)
-    desfoque = []
-
-    for caminho in correcao_cinza:
-        try:
-            img = cv2.imread(caminho)
-            if img is None:
-                continue
-            
-            img_desfocada = cv2.blur(img,(5,5))
-
-            nome_arquivo = os.path.basename(caminho)
-            novo_caminho = os.path.join(saida_dir, nome_arquivo)
-
-            # Salva imagem normalizada
-            cv2.imwrite(novo_caminho, img_desfocada)
-            desfoque.append(novo_caminho)
-
-        except Exception as e:
-            print(f"erro no {caminho}: {e}")
-
-    print(f" total: {len(desfoque)}")
-    return desfoque
 
 def inverter(correcao_cinza, saida_dir='/content/inverter'):
+    '''
+    Inverte as imagens horizontal e verticalmente (espelhamento total).
 
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório onde as imagens invertidas serão salvas.
+
+    Retorna:
+        list: Lista com os caminhos das imagens invertidas.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     inverter = []
 
@@ -472,9 +522,8 @@ def inverter(correcao_cinza, saida_dir='/content/inverter'):
             if img is None:
                 continue
 
-            img_invertida = cv2.flip(img, -1) #(inverte nos dois eixos)
+            img_invertida = cv2.flip(img, -1)
             
-
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
@@ -487,8 +536,18 @@ def inverter(correcao_cinza, saida_dir='/content/inverter'):
     print(f" total: {len(inverter)}")
     return inverter
 
-def nitidez(correcao_cinza, saida_dir='/content/nitidez'):
 
+def nitidez(correcao_cinza, saida_dir='/content/nitidez'):
+    '''
+    Aumenta a nitidez das imagens aplicando um filtro de realce.
+
+    Parâmetros:
+        correcao_cinza (list): Lista de caminhos das imagens em cinza.
+        saida_dir (str): Diretório onde as imagens nítidas serão salvas.
+
+    Retorna:
+        list: Lista com os caminhos das imagens com nitidez aumentada.
+    '''
     os.makedirs(saida_dir, exist_ok=True)
     nitidez = []
 
@@ -501,9 +560,8 @@ def nitidez(correcao_cinza, saida_dir='/content/nitidez'):
             aumentando_nitidez = np.array([[-1,-1,-1],
                                            [-1, 10, -1],
                                            [-1,-1,-1]], dtype=np.float32)
-            img_nitida = cv2.filter2D(img, -1, aumentando_nitidez) #(inverte nos dois eixos)
+            img_nitida = cv2.filter2D(img, -1, aumentando_nitidez)
             
-
             nome_arquivo = os.path.basename(caminho)
             novo_caminho = os.path.join(saida_dir, nome_arquivo)
 
