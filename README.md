@@ -53,7 +53,7 @@ Salvar as features em arquivos .csv ou .npy para uso nos modelos.
 
 
 
-dataset_processed/         # Saída do pipeline
+dataset_processed/         
 
 │
 
